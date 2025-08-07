@@ -42,7 +42,7 @@ add_compile_options(-march=rv32imac -mabi=ilp32 -msmall-data-limit=8 -msave-rest
 add_compile_options(-fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common)
 
 # 链接参数
-add_link_options(-T ${CMAKE_SOURCE_DIR}/Ld/Link.ld)
+add_link_options(-T ${CMAKE_SOURCE_DIR}/SDK/Ld/Link.ld)
 add_link_options(-march=rv32imac -mabi=ilp32 -nostartfiles -Xlinker --gc-sections -Wl,--print-memory-usage -Wl,-Map,${PROJECT_NAME}.map --specs=nano.specs --specs=nosys.specs)
 
 # 编译等级
@@ -53,21 +53,23 @@ add_compile_options(-Wall)
 
 # 头文件路径
 include_directories(APP
-                    Core
-                    Debug 
-                    Peripheral/inc)
+                    SDK/Core
+                    SDK/System
+                    SDK/Debug 
+                    SDK/Peripheral/inc)
 
 # 源码文件
 file(GLOB_RECURSE SOURCES 
                 "APP/*.c"
-                "Core/core_riscv.c" 
-                "Debug/debug.c"
-                "Peripheral/src/*.c" 
-                "Startup/startup_ch32v20x_D8W.S"
+                "SDK/System/*.c"
+                "SDK/Core/core_riscv.c" 
+                "SDK/Debug/debug.c"
+                "SDK/Peripheral/src/*.c" 
+                "SDK/Startup/startup_ch32v20x_D8W.S"
                 )
 
 # 宏定义
-# add_definitions(-DDEBUG=1)
+add_definitions(-DDEBUG=DEBUG_UART1)
 
 # 编译可执行文件
 add_executable(${PROJECT_NAME}.elf)
@@ -80,35 +82,35 @@ target_sources(${PROJECT_NAME}.elf
 # 使用BLE
 if(BUILD_WITH_BLE)
 include_directories(
-                    BLE_LIB
-                    HAL/include
+                    SDK/BLE_LIB
+                    SDK/HAL/include
                     )   
 file(GLOB_RECURSE HAL_SOURCES 
-                "HAL/*.c"
-                "BLE_LIB/*.S"
+                "SDK/HAL/*.c"
+                "SDK/BLE_LIB/*.S"
                 )
 target_sources(${PROJECT_NAME}.elf
                 PUBLIC
                     ${HAL_SOURCES}
                 )                
-target_link_libraries(${PROJECT_NAME}.elf ${CMAKE_SOURCE_DIR}/BLE_LIB/libwchble.a)
+target_link_libraries(${PROJECT_NAME}.elf ${CMAKE_SOURCE_DIR}/SDK/BLE_LIB/libwchble.a)
 
 # 使用LWNS
 if(BUILD_WITH_LWNS)
-include_directories( LWNS )    
-target_link_libraries(${PROJECT_NAME}.elf ${CMAKE_SOURCE_DIR}/LWNS/LIBWCHLWNS.a) 
+include_directories( SDK/LWNS )    
+target_link_libraries(${PROJECT_NAME}.elf ${CMAKE_SOURCE_DIR}/SDK/LWNS/LIBWCHLWNS.a) 
 endif()
 endif()
 
 
 # 使用NETLIB
 if(BUILD_WITH_NETLIB)
-include_directories( NetLib )   
+include_directories( SDK/NetLib )   
 target_sources(${PROJECT_NAME}.elf
                 PUBLIC
-                    "NetLib/eth_driver.c"
+                    "SDK/NetLib/eth_driver.c"
                 )
-target_link_libraries(${PROJECT_NAME}.elf ${CMAKE_SOURCE_DIR}/NetLib/libwchnet.a) 
+target_link_libraries(${PROJECT_NAME}.elf ${CMAKE_SOURCE_DIR}/SDK/NetLib/libwchnet.a) 
 endif()
 
 # 链接静态库
