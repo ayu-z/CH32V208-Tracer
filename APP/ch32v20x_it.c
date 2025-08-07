@@ -20,7 +20,7 @@
 void NMI_Handler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 void HardFault_Handler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 void BB_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
-void LLE_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
+// void LLE_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast"))); // Commented out - BLE library provides optimized assembly version
 
 /*********************************************************************
  * @fn      NMI_Handler
@@ -70,7 +70,9 @@ void BB_IRQHandler(void)
  *
  * @return  None
  */
+/*
 void LLE_IRQHandler(void)
 {
     LLE_IRQLibHandler();
 }
+*/

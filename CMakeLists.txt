@@ -8,7 +8,7 @@ option(BUILD_WITH_LWNS "=== Project USE LWNS ===" OFF)
 option(BUILD_WITH_NETLIB "=== Project USE NET LIB ===" OFF)
 
 # 工具链设置
-set(TOOLPATH C:/IDE/MounRiver/MounRiver_Studio/toolchain/RISC-V\ Embedded\ GCC/bin/riscv-none-embed-)
+set(TOOLPATH ${CMAKE_SOURCE_DIR}/Toolchain/RISC-V\ Embedded\ GCC/bin/riscv-none-embed-)
 
 if (WIN32)
     MESSAGE(STATUS "Now is windows!")
@@ -85,6 +85,7 @@ include_directories(
                     )   
 file(GLOB_RECURSE HAL_SOURCES 
                 "HAL/*.c"
+                "BLE_LIB/*.S"
                 )
 target_sources(${PROJECT_NAME}.elf
                 PUBLIC

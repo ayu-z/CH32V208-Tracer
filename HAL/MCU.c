@@ -3,22 +3,25 @@
  * Author             : WCH
  * Version            : V1.2
  * Date               : 2022/01/18
- * Description        : 硬件任务处理函数及BLE和硬件初始化
+ * Description        : HAL task processing function and BLE and hardware initialization
+ *********************************************************************************
  * Copyright (c) 2021 Nanjing Qinheng Microelectronics Co., Ltd.
- * SPDX-License-Identifier: Apache-2.0
+ * Attention: This software (modified or not) and binary are used for 
+ * microcontroller manufactured by Nanjing Qinheng Microelectronics.
  *******************************************************************************/
 
 /******************************************************************************/
-/* 头文件包含 */
+/* Header file contains */
 #include "HAL.h"
 #include "string.h"
 
 tmosTaskID halTaskID;
+uint32_t g_LLE_IRQLibHandlerLocation;
 
 /*******************************************************************************
  * @fn      Lib_Calibration_LSI
  *
- * @brief   内部32k校准
+ * @brief   Internal 32K calibration
  *
  * @param   None.
  *
@@ -33,7 +36,7 @@ void Lib_Calibration_LSI(void)
 /*******************************************************************************
  * @fn      Lib_Read_Flash
  *
- * @brief   Lib 操作Flash回调
+ * @brief   Callback function used for BLE lib.
  *
  * @param   addr.
  * @param   num.
@@ -50,7 +53,7 @@ uint32_t Lib_Read_Flash(uint32_t addr, uint32_t num, uint32_t *pBuf)
 /*******************************************************************************
  * @fn      Lib_Write_Flash
  *
- * @brief   Lib 操作Flash回调
+ * @brief   Callback function used for BLE lib.
  *
  * @param   addr.
  * @param   num.
@@ -72,7 +75,7 @@ uint32_t Lib_Write_Flash(uint32_t addr, uint32_t num, uint32_t *pBuf)
 /*******************************************************************************
  * @fn      WCHBLE_Init
  *
- * @brief   BLE 库初始化
+ * @brief   BLE library initialization
  *
  * @param   None.
  *
@@ -82,13 +85,16 @@ void WCHBLE_Init(void)
 {
     uint8_t     i;
     bleConfig_t cfg;
+
+    g_LLE_IRQLibHandlerLocation = (uint32_t)LLE_IRQLibHandler;
+
     if(!tmos_memcmp(VER_LIB, VER_FILE, strlen(VER_FILE)))
     {
         PRINT("head file error...\n");
         while(1);
     }
 
-    // 32M晶振匹配电容和电流
+    // 32M crystal capacitance and current
     OSC->HSE_CAL_CTRL &= ~(0x07<<28);
     OSC->HSE_CAL_CTRL |= 0x03<<28;
     OSC->HSE_CAL_CTRL |= 3<<24;
@@ -113,15 +119,15 @@ void WCHBLE_Init(void)
     cfg.ClockAccuracy = 1000;
 #endif
     cfg.ConnectNumber = (PERIPHERAL_MAX_CONNECTION & 3) | (CENTRAL_MAX_CONNECTION << 2);
-    cfg.BufMaxLen = BLE_BUFF_MAX_LEN;
 #if(defined TEM_SAMPLE) && (TEM_SAMPLE == TRUE)
-    cfg.tsCB = HAL_GetInterTempValue; // 根据温度变化校准RF和内部RC( 大于7摄氏度 )
+    // Calibrate RF and internal RC according to temperature changes (greater than 7 degrees Celsius)
+    cfg.tsCB = HAL_GetInterTempValue;
   #if(CLK_OSC32K)
-    cfg.rcCB = Lib_Calibration_LSI; // 内部32K时钟校准
+    cfg.rcCB = Lib_Calibration_LSI; // Internal 32K clock calibration
   #endif
 #endif
 #if(defined(HAL_SLEEP)) && (HAL_SLEEP == TRUE)
-    cfg.idleCB = BLE_LowPower; // 启用睡眠
+    cfg.idleCB = BLE_LowPower; // Enable sleep
 #endif
 #if(defined(BLE_MAC)) && (BLE_MAC == TRUE)
     for(i = 0; i < 6; i++)
@@ -134,7 +140,7 @@ void WCHBLE_Init(void)
         FLASH_GetMACAddress(MacAddr);
         for(i = 0; i < 6; i++)
         {
-            cfg.MacAddr[i] = MacAddr[i]; // 使用芯片mac地址
+            cfg.MacAddr[i] = MacAddr[i]; // Use chip mac address
         }
     }
 #endif
@@ -156,7 +162,7 @@ void WCHBLE_Init(void)
 /*******************************************************************************
  * @fn      HAL_ProcessEvent
  *
- * @brief   硬件层事务处理
+ * @brief   HAL processing
  *
  * @param   task_id - The TMOS assigned task ID.
  * @param   events  - events to process.  This is a bit map and can
@@ -169,7 +175,11 @@ tmosEvents HAL_ProcessEvent(tmosTaskID task_id, tmosEvents events)
     uint8_t *msgPtr;
 
     if(events & SYS_EVENT_MSG)
-    { // 处理HAL层消息，调用tmos_msg_receive读取消息，处理完成后删除消息。
+    { 
+        /**
+         * Process the HAL layer message, call tmos_msg_receive to read the message, 
+         * and delete the message after processing.
+         */
         msgPtr = tmos_msg_receive(task_id);
         if(msgPtr)
         {
@@ -195,10 +205,10 @@ tmosEvents HAL_ProcessEvent(tmosTaskID task_id, tmosEvents events)
     }
     if(events & HAL_REG_INIT_EVENT)
     {
-#if(defined BLE_CALIBRATION_ENABLE) && (BLE_CALIBRATION_ENABLE == TRUE) // 校准任务，单次校准耗时小于10ms
-        BLE_RegInit();                                                  // 校准RF
+#if(defined BLE_CALIBRATION_ENABLE) && (BLE_CALIBRATION_ENABLE == TRUE) // Calibration tasks, a single time is less than 10ms
+        BLE_RegInit();                                                  // Calibrate RF
 #if(CLK_OSC32K)
-        Lib_Calibration_LSI(); // 校准内部RC
+        Lib_Calibration_LSI(); // Calibrate internal RC
 #endif
         tmos_start_task(halTaskID, HAL_REG_INIT_EVENT, MS1_TO_SYSTEM_TIME(BLE_CALIBRATION_PERIOD));
         return events ^ HAL_REG_INIT_EVENT;
@@ -236,21 +246,24 @@ void HAL_Init()
     HAL_KeyInit();
 #endif
 #if(defined BLE_CALIBRATION_ENABLE) && (BLE_CALIBRATION_ENABLE == TRUE)
-    tmos_start_task(halTaskID, HAL_REG_INIT_EVENT, MS1_TO_SYSTEM_TIME(BLE_CALIBRATION_PERIOD)); // 添加校准任务，单次校准耗时小于10ms
+    // Add a calibration task, and a single calibration takes less than 10ms
+    tmos_start_task(halTaskID, HAL_REG_INIT_EVENT, MS1_TO_SYSTEM_TIME(BLE_CALIBRATION_PERIOD)); 
 #endif
-//    tmos_start_task(halTaskID, HAL_TEST_EVENT, MS1_TO_SYSTEM_TIME(1000));    // 添加一个测试任务
+//    tmos_start_task(halTaskID, HAL_TEST_EVENT, MS1_TO_SYSTEM_TIME(1000));    // Add a test task
 }
 
 /*******************************************************************************
  * @fn      HAL_GetInterTempValue
  *
- * @brief   获取内部温感采样值，如果使用了ADC中断采样，需在此函数中暂时屏蔽中断.
+ * @brief   Get the internal temperature sampling value, if the ADC interrupt sampling is used, 
+ *          it is necessary to temporarily shield the interrupt in this function.
  *
- * @return  内部温感采样值.
+ * @return  Internal temperature sampling value.
  */
 uint16_t HAL_GetInterTempValue(void)
 {
-    uint32_t rcc_apb2pcenr, rcc_cfgr0, adc1_ctrl1, adc1_ctrl2, adc1_rsqr1, adc1_rsqr3, adc1_samptr1;
+    uint32_t rcc_apb2pcenr, rcc_cfgr0, adc1_ctrl1, adc1_ctrl2, adc1_rsqr1, adc1_rsqr2, adc1_rsqr3, adc1_samptr1, adc1_samptr2;
+    uint32_t adc1_iofr1, adc1_iofr2, adc1_iofr3, adc1_iofr4, adc1_wdhtr, adc1_wdltr, adc1_isqr;
     ADC_InitTypeDef  ADC_InitStructure = {0};
     uint16_t adc_data;
 
@@ -259,8 +272,17 @@ uint16_t HAL_GetInterTempValue(void)
     adc1_ctrl1 = ADC1->CTLR1;
     adc1_ctrl2 = ADC1->CTLR2;
     adc1_rsqr1 = ADC1->RSQR1;
+    adc1_rsqr2 = ADC1->RSQR2;
     adc1_rsqr3 = ADC1->RSQR3;
     adc1_samptr1 = ADC1->SAMPTR1;
+    adc1_samptr2 = ADC1->SAMPTR2;
+    adc1_iofr1 = ADC1->IOFR1;
+    adc1_iofr2 = ADC1->IOFR2;
+    adc1_iofr3 = ADC1->IOFR3;
+    adc1_iofr4 = ADC1->IOFR4;
+    adc1_wdhtr = ADC1->WDHTR;
+    adc1_wdltr = ADC1->WDLTR;
+    adc1_isqr = ADC1->ISQR;
 
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
     RCC_ADCCLKConfig(RCC_PCLK2_Div8);
@@ -287,8 +309,17 @@ uint16_t HAL_GetInterTempValue(void)
     ADC1->CTLR1 = adc1_ctrl1;
     ADC1->CTLR2 = adc1_ctrl2;
     ADC1->RSQR1 = adc1_rsqr1;
+    ADC1->RSQR2 = adc1_rsqr2;
     ADC1->RSQR3 = adc1_rsqr3;
     ADC1->SAMPTR1 = adc1_samptr1;
+    ADC1->SAMPTR2 = adc1_samptr2;
+    ADC1->IOFR1 = adc1_iofr1;
+    ADC1->IOFR2 = adc1_iofr2;
+    ADC1->IOFR3 = adc1_iofr3;
+    ADC1->IOFR4 = adc1_iofr4;
+    ADC1->WDHTR = adc1_wdhtr;
+    ADC1->WDLTR = adc1_wdltr;
+    ADC1->ISQR = adc1_isqr;
     return (adc_data);
 }
 

@@ -3,13 +3,15 @@
  * Author             : WCH
  * Version            : V1.2
  * Date               : 2022/01/18
- * Description        : RTC配置及其初始化
+ * Description        : RTC configuration and its initialization
+ *********************************************************************************
  * Copyright (c) 2021 Nanjing Qinheng Microelectronics Co., Ltd.
- * SPDX-License-Identifier: Apache-2.0
+ * Attention: This software (modified or not) and binary are used for 
+ * microcontroller manufactured by Nanjing Qinheng Microelectronics.
  *******************************************************************************/
 
 /******************************************************************************/
-/* 头文件包含 */
+/* Header file contains */
 #include "HAL.h"
 
 /*********************************************************************
@@ -27,9 +29,9 @@ volatile uint32_t RTCTigFlag;
 /*******************************************************************************
  * @fn      RTC_SetTignTime
  *
- * @brief   配置RTC触发时间
+ * @brief   Configure RTC trigger time
  *
- * @param   time    - 触发时间.
+ * @param   time    - Trigger time.
  *
  * @return  None.
  */
@@ -41,11 +43,10 @@ void RTC_SetTignTime(uint32_t time)
     RTCTigFlag = 0;
 }
 
-
 /*******************************************************************************
  * @fn      HAL_Time0Init
  *
- * @brief   系统定时器初始化
+ * @brief   System timer initialization
  *
  * @param   None.
  *
@@ -53,6 +54,10 @@ void RTC_SetTignTime(uint32_t time)
  */
 void HAL_TimeInit(void)
 {
+    
+    uint8_t state=0;
+    bleClockConfig_t  conf={0};
+
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR|RCC_APB1Periph_BKP, ENABLE);
     PWR_BackupAccessCmd(ENABLE);
 #if( CLK_OSC32K )
@@ -60,9 +65,11 @@ void HAL_TimeInit(void)
     RCC_LSEConfig(RCC_LSE_OFF);
     RCC_RTCCLKConfig(RCC_RTCCLKSource_LSI);
 #else
-    uint16_t temp = 0;
+    uint16_t temp=0;
     RCC_LSEConfig(RCC_LSE_ON);
-    while (RCC_GetFlagStatus(RCC_FLAG_LSERDY) == RESET) //检查指定的RCC标志位设置与否,等待低速晶振就绪
+    /* Check the specified RCC logo position settings or not, 
+     * wait for the low-speed crystal oscillator to be ready */
+    while (RCC_GetFlagStatus(RCC_FLAG_LSERDY) == RESET) 
     {
         temp++;
         Delay_Ms(10);
@@ -83,13 +90,21 @@ void HAL_TimeInit(void)
 #if( CLK_OSC32K )
     Lib_Calibration_LSI();
 #endif
-    TMOS_TimerInit( RTC_GetCounter );
+    conf.ClockAccuracy = CLK_OSC32K?1000:100;
+    conf.ClockFrequency = CAB_LSIFQ/2;
+    conf.ClockMaxCount = 0xFFFFFFFF;
+    conf.getClockValue = RTC_GetCounter;
+    state = TMOS_TimerInit( &conf );
+    if(state)
+    {
+        PRINT("TMOS_TimerInit err %x\n",state);
+    }
 }
+
 
 __attribute__((interrupt("WCH-Interrupt-fast")))
 void RTCAlarm_IRQHandler(void)
 {
-    TMOS_TimerIRQHandler();
     RTCTigFlag = 1;
     EXTI_ClearITPendingBit(EXTI_Line17);
     RTC_ClearITPendingBit(RTC_IT_ALR);
