@@ -3,13 +3,13 @@
  * Author             : WCH
  * Version            : V1.0
  * Date               : 2020/08/06
- * Description        : ¹ã²¥Ó¦ÓÃÖ÷º¯Êý¼°ÈÎÎñÏµÍ³³õÊ¼»¯
+ * Description        : ï¿½ã²¥Ó¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÏµÍ³ï¿½ï¿½Ê¼ï¿½ï¿½
  * Copyright (c) 2021 Nanjing Qinheng Microelectronics Co., Ltd.
  * SPDX-License-Identifier: Apache-2.0
  *******************************************************************************/
 
 /******************************************************************************/
-/* Í·ÎÄ¼þ°üº¬ */
+/* Í·ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ */
 #include "config.h"
 #include "HAL.h"
 #include "broadcaster.h"
@@ -41,7 +41,7 @@ void task1_task(void *pvParameters)
     while(1)
     {
         printf("task1 entry\r\n");
-        vTaskDelay(250);
+        vTaskDelay(500);
     }
 }
 
@@ -51,14 +51,14 @@ void task2_task(void *pvParameters)
     while(1)
     {
         printf("task2 entry\r\n");
-        vTaskDelay(500);
+        vTaskDelay(1500);
     }
 }
 
 /*********************************************************************
  * @fn      Main_Circulation
  *
- * @brief   Ö÷Ñ­»·
+ * @brief   ä¸»å¾ªçŽ¯
  *
  * @return  none
  */
@@ -69,13 +69,14 @@ void Main_Circulation(void)
     while(1)
     {
         TMOS_SystemProcess();
+        vTaskDelay(1);
     }
 }
 
 /*********************************************************************
  * @fn      main
  *
- * @brief   Ö÷º¯Êý
+ * @brief   ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
  *
  * @return  none
  */
@@ -111,7 +112,7 @@ int main(void)
                 (const char*    )"Main_Circulation",
                 (uint16_t       )1024,
                 (void*          )NULL,
-                (UBaseType_t    )1,
+                (UBaseType_t    )4,
                 (TaskHandle_t*  )NULL);
                 
     vTaskStartScheduler();

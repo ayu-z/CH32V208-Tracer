@@ -3,7 +3,7 @@
  * Author             : WCH
  * Version            : V1.0
  * Date               : 2020/08/06
- * Description        : ¹ã²¥Ó¦ÓÃ³ÌÐò£¬³õÊ¼»¯¹ã²¥Á¬½Ó²ÎÊý£¬È»ºó´¦ÓÚ¹ã²¥Ì¬Ò»Ö±¹ã²¥
+ * Description        : ï¿½ã²¥Ó¦ï¿½Ã³ï¿½ï¿½ò£¬³ï¿½Ê¼ï¿½ï¿½ï¿½ã²¥ï¿½ï¿½ï¿½Ó²ï¿½ï¿½ï¿½ï¿½ï¿½È»ï¿½ï¿½ï¿½Ú¹ã²¥Ì¬Ò»Ö±ï¿½ã²¥
 
  * Copyright (c) 2021 Nanjing Qinheng Microelectronics Co., Ltd.
  * SPDX-License-Identifier: Apache-2.0
@@ -83,12 +83,10 @@ static uint8_t advertData[] = {
     // discoverable mode (advertises indefinitely)
     0x02, // length of this data
     GAP_ADTYPE_FLAGS,
-    GAP_ADTYPE_FLAGS_BREDR_NOT_SUPPORTED,
+    GAP_ADTYPE_FLAGS_GENERAL | GAP_ADTYPE_FLAGS_BREDR_NOT_SUPPORTED,
 
     // Broadcast of the data
-    0x04,                             // length of this data including the data type byte
-    GAP_ADTYPE_MANUFACTURER_SPECIFIC, // manufacturer specific advertisement data type
-    'b', 'l', 'e', 0x04,
+    0x04,
     GAP_ADTYPE_LOCAL_NAME_SHORT,
     'a', 'b', 'c'
 };
@@ -133,11 +131,11 @@ void Broadcaster_Init()
     {
         // Device starts advertising upon initialization
         uint8_t initial_advertising_enable = TRUE;
-        uint8_t initial_adv_event_type = GAP_ADTYPE_ADV_NONCONN_IND;
+        uint8_t initial_adv_event_type = GAP_ADTYPE_EXT_CONN_UNDIRECT;
         // Set the GAP Role Parameters
         GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, sizeof(uint8_t), &initial_advertising_enable);
         GAPRole_SetParameter(GAPROLE_ADV_EVENT_TYPE, sizeof(uint8_t), &initial_adv_event_type);
-        GAPRole_SetParameter(GAPROLE_SCAN_RSP_DATA, sizeof(scanRspData), scanRspData);
+        // GAPRole_SetParameter(GAPROLE_SCAN_RSP_DATA, sizeof(scanRspData), scanRspData);
         GAPRole_SetParameter(GAPROLE_ADVERT_DATA, sizeof(advertData), advertData);
     }
 
