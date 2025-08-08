@@ -146,6 +146,7 @@ SECTIONS
 		. = ALIGN(8);
     	PROVIDE( __global_pointer$ = . + 0x800 );
     	*(.sdata .sdata.*)
+		*(.sdata2.*)
     	*(.gnu.linkonce.s.*)
     	. = ALIGN(8);
     	*(.srodata.cst16)
@@ -187,5 +188,6 @@ SECTIONS
         PROVIDE( _heap_end = . );   
 		. = ALIGN(4);
 		PROVIDE(_eusrstack = . );
+		__freertos_irq_stack_top = .;
 	} >RAM  
 }

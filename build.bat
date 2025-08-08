@@ -3,6 +3,5 @@
 set PATH=.\Toolchain;%PATH%
 if not exist build mkdir build
 cd build
-cmake -GNinja -DBUILD_WITH_BLE=ON ..
+cmake -GNinja -DBUILD_WITH_BLE=ON -DBUILD_WITH_FREERTOS=ON -DBLE_MAC=ON ..
 ninja
-

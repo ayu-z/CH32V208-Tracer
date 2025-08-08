@@ -14,6 +14,12 @@
 #include "ch32v20x_it.h"
 #include "config.h"
 
+// Add BLE library header to resolve BB_IRQLibHandler declaration
+#include "wchble.h"
+
+// Explicit declaration for BLE interrupt handler
+extern void BB_IRQLibHandler(void);
+
 /*********************************************************************
  * LOCAL FUNCTIONS
  */

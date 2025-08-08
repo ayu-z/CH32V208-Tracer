@@ -3,9 +3,6 @@ set(CMAKE_SYSTEM_VERSION 1)
 set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
 cmake_minimum_required(VERSION 3.20)
 
-option(BUILD_WITH_BLE "=== Project USE BLE ===" OFF)
-option(BUILD_WITH_LWNS "=== Project USE LWNS ===" OFF)
-option(BUILD_WITH_NETLIB "=== Project USE NET LIB ===" OFF)
 
 # 工具链设置
 set(TOOLPATH ${CMAKE_SOURCE_DIR}/Toolchain/RISC-V\ Embedded\ GCC/bin/riscv-none-embed-)
@@ -32,91 +29,63 @@ else ()
     MESSAGE(FATAL_ERROR "Unsupported system!")
 endif ()
 
+# 项目选项
+option(BUILD_WITH_BLE "=== Project USE BLE ===" OFF)
+option(BUILD_WITH_LWNS "=== Project USE LWNS ===" OFF)
+option(BUILD_WITH_NETLIB "=== Project USE NET LIB ===" OFF)
+option(BUILD_WITH_FREERTOS "=== Project USE FreeRTOS ===" OFF)
+option(BLE_MAC "=== Use custom BLE MAC address ===" OFF)
+
 # 项目设置
 project(ch32v208-ninja C CXX ASM)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_C_STANDARD 99)
 
-# 编译参数 一般不用改
+# 编译参数
 add_compile_options(-march=rv32imac -mabi=ilp32 -msmall-data-limit=8 -msave-restore)
 add_compile_options(-fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common)
-
-# 链接参数
-add_link_options(-T ${CMAKE_SOURCE_DIR}/SDK/Ld/Link.ld)
-add_link_options(-march=rv32imac -mabi=ilp32 -nostartfiles -Xlinker --gc-sections -Wl,--print-memory-usage -Wl,-Map,${PROJECT_NAME}.map --specs=nano.specs --specs=nosys.specs)
-
-# 编译等级
 add_compile_options(-O2 -g)
-
-# 编译信息等级
 add_compile_options(-Wall)
 
-# 头文件路径
-include_directories(APP
-                    SDK/Core
-                    SDK/System
-                    SDK/Debug 
-                    SDK/Peripheral/inc)
-
-# 源码文件
-file(GLOB_RECURSE SOURCES 
-                "APP/*.c"
-                "SDK/System/*.c"
-                "SDK/Core/core_riscv.c" 
-                "SDK/Debug/debug.c"
-                "SDK/Peripheral/src/*.c" 
-                "SDK/Startup/startup_ch32v20x_D8W.S"
-                )
-
-# 宏定义
-add_definitions(-DDEBUG=DEBUG_UART1)
-
-# 编译可执行文件
-add_executable(${PROJECT_NAME}.elf)
-
-target_sources(${PROJECT_NAME}.elf
-                PUBLIC
-                    ${SOURCES}
-                )
-
-# 使用BLE
-if(BUILD_WITH_BLE)
-include_directories(
-                    SDK/BLE_LIB
-                    SDK/HAL/include
-                    )   
-file(GLOB_RECURSE HAL_SOURCES 
-                "SDK/HAL/*.c"
-                "SDK/BLE_LIB/*.S"
-                )
-target_sources(${PROJECT_NAME}.elf
-                PUBLIC
-                    ${HAL_SOURCES}
-                )                
-target_link_libraries(${PROJECT_NAME}.elf ${CMAKE_SOURCE_DIR}/SDK/BLE_LIB/libwchble.a)
-
-# 使用LWNS
-if(BUILD_WITH_LWNS)
-include_directories( SDK/LWNS )    
-target_link_libraries(${PROJECT_NAME}.elf ${CMAKE_SOURCE_DIR}/SDK/LWNS/LIBWCHLWNS.a) 
-endif()
+# 添加预处理器定义
+if(BLE_MAC)
+    add_compile_definitions(BLE_MAC=TRUE)
 endif()
 
+# 添加子目录以获取源文件和配置
+add_subdirectory(SDK)
+add_subdirectory(APP)
 
-# 使用NETLIB
-if(BUILD_WITH_NETLIB)
-include_directories( SDK/NetLib )   
-target_sources(${PROJECT_NAME}.elf
-                PUBLIC
-                    "SDK/NetLib/eth_driver.c"
-                )
-target_link_libraries(${PROJECT_NAME}.elf ${CMAKE_SOURCE_DIR}/SDK/NetLib/libwchnet.a) 
-endif()
+# 链接参数 (使用从SDK导出的链接脚本)
+add_link_options(-T ${SDK_LINKER_SCRIPT})
+add_link_options(-march=rv32imac -mabi=ilp32 -nostartfiles -Xlinker --gc-sections -Wl,--print-memory-usage -Wl,-Map,${PROJECT_NAME}.map --specs=nano.specs --specs=nosys.specs)
+
+# 创建主可执行文件，使用所有源文件
+add_executable(${PROJECT_NAME}.elf 
+    ${APP_SOURCES}
+    ${SDK_CORE_SOURCES}
+)
+
+# 设置包含目录
+target_include_directories(${PROJECT_NAME}.elf PRIVATE 
+    ${SDK_CORE_INCLUDE_DIRS} 
+    ${APP_INCLUDE_DIRS}
+)
 
 # 链接静态库
-# target_link_libraries(${PROJECT_NAME}.elf printfloat)
+if(BUILD_WITH_BLE)
+    target_link_libraries(${PROJECT_NAME}.elf ${BLE_STATIC_LIB})
+    
+    if(BUILD_WITH_LWNS)
+        target_link_libraries(${PROJECT_NAME}.elf ${LWNS_STATIC_LIB})
+    endif()
+endif()
 
-# 输出hex和bin
+if(BUILD_WITH_NETLIB)
+    target_link_libraries(${PROJECT_NAME}.elf ${NETLIB_STATIC_LIB})
+endif()
+
+# 输出hex和bin文件
 set(HEX_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex)
 set(BIN_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin)
 set(LST_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.lst)
